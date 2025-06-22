@@ -1,24 +1,25 @@
-//
-//  ContentView.swift
-//  TicTacToe
-//
-//  Created by Priyansh Vaghela on 6/22/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Tic-Tac-Toe")
+                .font(.largeTitle)
+                .bold()
+                .padding(.bottom, 16)
+            Text("Let the games begin…")
+                .foregroundColor(.secondary)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(UIColor.systemBackground))
     }
 }
 
-#Preview {
-    ContentView()
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+            .preferredColorScheme(.light)
+        ContentView()
+            .preferredColorScheme(.dark)
+    }
 }
