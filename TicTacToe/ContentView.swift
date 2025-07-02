@@ -12,14 +12,12 @@ struct ContentView: View {
             let cellSize = size / 3
 
             ZStack {
-                // 1️⃣ The grid lines
+                // Grid lines
                 Path { path in
                     for i in 1..<3 {
                         let offset = cellSize * CGFloat(i)
-                        // vertical
                         path.move(to: CGPoint(x: offset, y: 0))
                         path.addLine(to: CGPoint(x: offset, y: size))
-                        // horizontal
                         path.move(to: CGPoint(x: 0, y: offset))
                         path.addLine(to: CGPoint(x: size, y: offset))
                     }
@@ -27,9 +25,9 @@ struct ContentView: View {
                 .stroke(Color.primary, lineWidth: lineWidth)
                 .frame(width: size, height: size)
                 .position(x: proxy.size.width / 2,
-                          y: proxy.size.height / 2 - 40) // shift up for Reset button
+                          y: proxy.size.height / 2 - 40)
 
-                // 2️⃣ The tappable cells with X/O
+                // Tappable cells
                 VStack(spacing: 0) {
                     ForEach(0..<3) { row in
                         HStack(spacing: 0) {
@@ -56,7 +54,7 @@ struct ContentView: View {
                 .position(x: proxy.size.width / 2,
                           y: proxy.size.height / 2 - 40)
 
-                // 3️⃣ Reset button below grid
+                // Reset button
                 VStack {
                     Spacer()
                     Button("Reset") {
@@ -71,6 +69,24 @@ struct ContentView: View {
                     .padding(.bottom, 40)
                 }
             }
+            // ❶ Alert for win/draw
+            .alert(isPresented: $game.gameOver) {
+                if let winner = game.winner {
+                    return Alert(
+                        title: Text("\(winner.symbol) Wins!"),
+                        dismissButton: .default(Text("Play Again")) {
+                            game.reset()
+                        }
+                    )
+                } else {
+                    return Alert(
+                        title: Text("It's a Draw"),
+                        dismissButton: .default(Text("Play Again")) {
+                            game.reset()
+                        }
+                    )
+                }
+            }
         }
         .background(Color(UIColor.systemBackground))
     }
@@ -79,10 +95,8 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            ContentView()
-                .preferredColorScheme(.light)
-            ContentView()
-                .preferredColorScheme(.dark)
+            ContentView().preferredColorScheme(.light)
+            ContentView().preferredColorScheme(.dark)
         }
     }
 }
