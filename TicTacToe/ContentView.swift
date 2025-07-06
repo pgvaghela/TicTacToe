@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit    // for haptics
 
 struct ContentView: View {
     @StateObject private var game = GameState()
@@ -8,18 +9,18 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { proxy in
             let rawSize = min(proxy.size.width, proxy.size.height)
-            let size = rawSize * gridScale
-            let cellSize = size / 3
+            let size    = rawSize * gridScale
+            let cell    = size / 3
 
             ZStack {
                 // Grid lines
                 Path { path in
                     for i in 1..<3 {
-                        let offset = cellSize * CGFloat(i)
-                        path.move(to: CGPoint(x: offset, y: 0))
-                        path.addLine(to: CGPoint(x: offset, y: size))
-                        path.move(to: CGPoint(x: 0, y: offset))
-                        path.addLine(to: CGPoint(x: size, y: offset))
+                        let off = cell * CGFloat(i)
+                        path.move(to: CGPoint(x: off, y: 0))
+                        path.addLine(to: CGPoint(x: off, y: size))
+                        path.move(to: CGPoint(x: 0, y: off))
+                        path.addLine(to: CGPoint(x: size, y: off))
                     }
                 }
                 .stroke(Color.primary, lineWidth: lineWidth)
@@ -27,25 +28,36 @@ struct ContentView: View {
                 .position(x: proxy.size.width / 2,
                           y: proxy.size.height / 2 - 40)
 
-                // Tappable cells
+                // Cells with X/O and animations
                 VStack(spacing: 0) {
                     ForEach(0..<3) { row in
                         HStack(spacing: 0) {
                             ForEach(0..<3) { col in
                                 let idx = row * 3 + col
-                                Button {
-                                    game.makeMove(at: idx)
-                                } label: {
-                                    ZStack {
-                                        Color.clear
-                                        if let p = game.board.cells[idx] {
-                                            Text(p.symbol)
-                                                .font(.system(size: cellSize * 0.6, weight: .bold))
-                                                .foregroundColor(.primary)
-                                        }
+                                ZStack {
+                                    // subtle background
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(UIColor.systemGray6))
+                                        .frame(width: cell, height: cell)
+
+                                    if let p = game.board.cells[idx] {
+                                        Text(p.symbol)
+                                            .font(.system(size: cell * 0.6, weight: .bold))
+                                            .foregroundColor(.primary)
+                                            .transition(.scale.combined(with: .opacity))
                                     }
                                 }
-                                .frame(width: cellSize, height: cellSize)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    guard !game.gameOver else { return }
+                                    // haptic
+                                    UIImpactFeedbackGenerator(style: .medium)
+                                        .impactOccurred()
+                                    // animate the symbol appearing
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                        game.makeMove(at: idx)
+                                    }
+                                }
                             }
                         }
                     }
@@ -58,7 +70,9 @@ struct ContentView: View {
                 VStack {
                     Spacer()
                     Button("Reset") {
-                        game.reset()
+                        withAnimation {
+                            game.reset()
+                        }
                     }
                     .font(.headline)
                     .padding(.horizontal, 40)
@@ -69,20 +83,20 @@ struct ContentView: View {
                     .padding(.bottom, 40)
                 }
             }
-            // ❶ Alert for win/draw
+            // Win/draw alert from yesterday stays in place
             .alert(isPresented: $game.gameOver) {
                 if let winner = game.winner {
                     return Alert(
                         title: Text("\(winner.symbol) Wins!"),
                         dismissButton: .default(Text("Play Again")) {
-                            game.reset()
+                            withAnimation { game.reset() }
                         }
                     )
                 } else {
                     return Alert(
                         title: Text("It's a Draw"),
                         dismissButton: .default(Text("Play Again")) {
-                            game.reset()
+                            withAnimation { game.reset() }
                         }
                     )
                 }
