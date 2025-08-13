@@ -45,6 +45,7 @@ struct ContentView: View {
                             .fill(Color(UIColor.systemBackground))
                             .shadow(color: .black.opacity(0.1), radius: 15, x: 0, y: 5)
                             .frame(width: size + 20, height: size + 20)
+                            .accessibilityIdentifier("gameBoard")
                         
                         // Grid lines with improved styling
                         Path { path in
@@ -92,6 +93,7 @@ struct ContentView: View {
                                             }
                                         )
                                         .frame(width: cell, height: cell)
+                                        .accessibilityIdentifier("gameCell")
                                     }
                                 }
                             }
