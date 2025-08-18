@@ -3,6 +3,7 @@ import UIKit    // for haptics
 
 struct ContentView: View {
     @StateObject private var game = GameState()
+    @StateObject private var accessibilityManager = AccessibilityManager()
     private let lineWidth: CGFloat = 4
     private let gridScale: CGFloat = 0.85
 
@@ -37,6 +38,8 @@ struct ContentView: View {
                             )
                         )
                         .padding(.top, 20)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityLabel("Tic Tac Toe Game")
                     
                     // Game board container
                     ZStack {
@@ -77,6 +80,7 @@ struct ContentView: View {
                                             cell: game.board.cells[idx],
                                             currentPlayer: game.currentPlayer,
                                             isBotTurn: game.isBotEnabled && game.currentPlayer == game.botPlayer,
+                                            accessibilityManager: accessibilityManager,
                                             onTap: {
                                                 guard !game.gameOver else { return }
                                                 // Don't allow moves if it's bot's turn
@@ -87,7 +91,7 @@ struct ContentView: View {
                                                 UIImpactFeedbackGenerator(style: .medium)
                                                     .impactOccurred()
                                                 // animate the symbol appearing
-                                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                                withAnimation(.spring(response: accessibilityManager.animationDuration(for: 0.4), dampingFraction: 0.6)) {
                                                     game.makeMove(at: idx)
                                                 }
                                             }
@@ -113,6 +117,8 @@ struct ContentView: View {
                                 Spacer()
                                 Toggle("Bot Player", isOn: $game.isBotEnabled)
                                     .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                    .accessibilityLabel(accessibilityManager.botControlsAccessibilityLabel(isEnabled: game.isBotEnabled, difficulty: game.botDifficulty, botPlayer: game.botPlayer))
+                                    .accessibilityHint(accessibilityManager.botToggleAccessibilityHint())
                                     .onChange(of: game.isBotEnabled) { enabled in
                                         if enabled {
                                             game.enableBot()
@@ -137,6 +143,8 @@ struct ContentView: View {
                                     }
                                     .pickerStyle(SegmentedPickerStyle())
                                     .padding(.horizontal, 20)
+                                    .accessibilityLabel("Bot Difficulty Selection")
+                                    .accessibilityValue(accessibilityManager.difficultyAccessibilityLabel(difficulty: game.botDifficulty))
                                     
                                     // Bot player selection
                                     HStack {
@@ -150,6 +158,8 @@ struct ContentView: View {
                                     }
                                     .pickerStyle(SegmentedPickerStyle())
                                     .frame(width: 100)
+                                    .accessibilityLabel("Bot Player Selection")
+                                    .accessibilityValue("Bot plays as \(game.botPlayer.symbol)")
                                     .onChange(of: game.botPlayer) { _ in
                                         if game.isBotEnabled {
                                             game.reset()
@@ -174,16 +184,17 @@ struct ContentView: View {
                                 Text("Current Player:")
                                     .font(.headline)
                                     .foregroundColor(.primary)
-                                Text(game.currentPlayer.symbol)
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: game.currentPlayer == .x ? [.blue, .cyan] : [.red, .orange],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                                                            Text(game.currentPlayer.symbol)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: game.currentPlayer == .x ? [.blue, .cyan] : [.red, .orange],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
                                     )
-                                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                .accessibilityLabel(accessibilityManager.currentPlayerAccessibilityLabel(currentPlayer: game.currentPlayer))
                             }
                             .padding(.vertical, 12)
                             .padding(.horizontal, 24)
@@ -196,7 +207,7 @@ struct ContentView: View {
                         
                         // Reset button
                         Button(action: {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            withAnimation(.spring(response: accessibilityManager.animationDuration(for: 0.5), dampingFraction: 0.7)) {
                                 game.reset()
                             }
                         }) {
@@ -219,6 +230,8 @@ struct ContentView: View {
                             )
                             .cornerRadius(12)
                             .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .accessibilityLabel(accessibilityManager.resetButtonAccessibilityLabel())
+                            .accessibilityHint(accessibilityManager.resetButtonAccessibilityHint())
                         }
                         .scaleEffect(game.gameOver ? 1.05 : 1.0)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: game.gameOver)
@@ -231,9 +244,9 @@ struct ContentView: View {
                 if let winner = game.winner {
                     return Alert(
                         title: Text("🎉 \(winner.symbol) Wins! 🎉"),
-                        message: Text("Congratulations! \(winner.symbol) has won the game."),
+                        message: Text(accessibilityManager.winAnnouncementAccessibilityLabel(winner: winner)),
                         dismissButton: .default(Text("Play Again")) {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { 
+                            withAnimation(.spring(response: accessibilityManager.animationDuration(for: 0.5), dampingFraction: 0.7)) { 
                                 game.reset() 
                             }
                         }
@@ -241,9 +254,9 @@ struct ContentView: View {
                 } else {
                     return Alert(
                         title: Text("🤝 It's a Draw! 🤝"),
-                        message: Text("The game ended in a tie. Great match!"),
+                        message: Text(accessibilityManager.drawAnnouncementAccessibilityLabel()),
                         dismissButton: .default(Text("Play Again")) {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { 
+                            withAnimation(.spring(response: accessibilityManager.animationDuration(for: 0.5), dampingFraction: 0.7)) { 
                                 game.reset() 
                             }
                         }
@@ -259,6 +272,7 @@ struct CellView: View {
     let cell: Player?
     let currentPlayer: Player
     let isBotTurn: Bool
+    let accessibilityManager: AccessibilityManager
     let onTap: () -> Void
     
     @State private var isPressed = false
@@ -293,7 +307,11 @@ struct CellView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .scaleEffect(isPressed ? 0.95 : 1.0)
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
+        .animation(.easeInOut(duration: accessibilityManager.animationDuration(for: 0.1)), value: isPressed)
+        .accessibilityLabel(accessibilityManager.cellAccessibilityLabel(for: cell, at: 0, currentPlayer: currentPlayer))
+        .accessibilityHint(accessibilityManager.cellAccessibilityHint(for: cell, isBotTurn: isBotTurn))
+        .accessibilityValue(accessibilityManager.cellAccessibilityValue(for: cell))
+        .accessibilityAddTraits(.isButton)
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
